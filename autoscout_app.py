@@ -95,11 +95,14 @@ except:
 
 # PREDICTION
 
-predict = st.button("Predict")
-if model == 'Lasso':
-    result = str(model_lasso.predict(df)[0])
-elif model == 'Random Forest':
-    result = str(model_rf.predict(df)[0])
+try:
+    predict = st.button("Predict")
+    if model == 'Lasso':
+        result = str(model_lasso.predict(df)[0])
+    elif model == 'Random Forest':
+        result = str(model_rf.predict(df)[0])
+except:
+    pass
 
 
 

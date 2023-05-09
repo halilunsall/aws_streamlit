@@ -1,3 +1,4 @@
+
 # IMPORT AND USER-DEFINE FUNCTIONS
 
 import streamlit as st
@@ -166,9 +167,8 @@ with col2:
 with col3:
     html_options(on='link', to_link='https://public.tableau.com/app/profile/halilunsal', image_height=60, image_width=60, image_source="https://cdn.worldvectorlogo.com/logos/tableau-software.svg", image_bg_color='#FFFFFF')
 
-
-
-
-html_options(on='link', align='center',to_link='http://3.85.171.167:8502/', image_height=150, image_width=300, image_source="xd.png", image_bg_color='#FFFFFF')
-
-
+st.write('')
+st.write('')
+st.write('')
+st.write('')
+html_options(on='link', align='center',to_link='http://3.85.171.167:8502/', image_height=300, image_width=500, image_source="https://raw.githubusercontent.com/halilunsall/aws_streamlit/main/xd.png", image_bg_color='#FFFFFF')

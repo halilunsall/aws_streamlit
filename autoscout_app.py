@@ -6,140 +6,161 @@ import pandas as pd
 import numpy as np
 from PIL import Image
 import pickle
+from bs4 import BeautifulSoup
+import requests
 
 
-def text(text, align="left", size=12, weight="normal", style="normal", color="#F4A460", on='main'):
-    if on == 'side':
-        st.sidebar.write(
-            f"<div style='text-align: {align}; font-size: {size}px; font-weight: {weight}; font-style: {style}; color: {color};'>{text}</div>",
-        unsafe_allow_html=True)
-    elif on == 'main':
-        st.write(
-        f"<div style='text-align: {align}; font-size: {size}px; font-weight: {weight}; font-style: {style}; color: {color};'>{text}</div>",
-        unsafe_allow_html=True)
-    elif on == 'mark':
-        st.markdown(
-        f"<div style='text-align: {align}; font-size: {size}px; font-weight: {weight}; font-style: {style}; color: {color};'>{text}</div>",
-        unsafe_allow_html=True)
+def html_options(text=None, align="left", size=12, weight="normal", style="normal", color="#F4A460", bg_color=None, bg_size=16, on='main', to_link=None, image_width=None, image_height=None, image_source=None, image_bg_color=None):
+    if on == 'main':
+        st.markdown(f"""<div style="background-color:{bg_color};padding:{bg_size}px">
+        <h2 style='text-align: {align}; font-size: {size}px; font-weight: {weight}; font-style: {style}; color: {color};'>{text} </h2>
+        </div>""", unsafe_allow_html=True)
+    elif on == 'side':
+        st.sidebar.markdown(f"""<div style="background-color:{bg_color};padding:{bg_size}px">
+        <h2 style='text-align: {align}; font-size: {size}px; font-weight: {weight}; font-style: {style}; color: {color};'>{text} </h2>
+        </div>""", unsafe_allow_html=True)
+    elif on == 'link':
+        image_style = f"background-color:{image_bg_color};" if image_bg_color else ""
+        st.markdown(f"""<div style="text-align: {align};"> <a href="{to_link}"><img width="{image_width}" height="{image_height}" src="{image_source}" style="{image_style}" /></a></div>""", unsafe_allow_html=True)
+
 
 
 # HEAD TO PICTURE
-text(text='Car Price Prediction App', align='center', size=50, weight='bold', color='#9ACD32')
+html_options(text='Car Price Prediction App', align='center', size=50, weight='bold', color='#FFA500', bg_color='#000000')
+
 
 st.write('')
 st.info('This app predicts **car prices** for you!')
 st.write('')
 st.write('')
-st.image("Image.jpg", use_column_width=True)
+st.image("https://www.motortrend.com/uploads/2022/03/2022-Honda-Civic-Touring-vs-2022-Hyundai-Elantra-Limited-vs-2022-Kia-Forte-GT-vs-2022-Mazda-Mazda3-Sedan-AWD-Turbo-vs-2022-Nissan-Sentra-SR-vs-2022-Volkswagen-Jetta-SEL-19.jpg?fit=around%7C875:492", use_column_width=True)
 st.write('')
 st.write('')
 
 
 
 # SIDEBAR 
-text(text='Configurate your car', align='center', size='30', weight='bold', color='#87CEEB', on='side')
+html_options(text='Configurate your car', align='center', size='30', weight='bold', color='#32C823', on='side', bg_color='#000000')
+st.sidebar.write('')
+model = st.sidebar.selectbox('Scikit-Learn Model', ['Select', 'Lasso', 'Random Forest', 'XGBoost'])
+if model == 'Lasso':
+    st.sidebar.warning('This model has a high error rate.')
+elif model == 'XGBoost':
+    st.sidebar.warning('This model is out of use as it is under development.')
 st.sidebar.write('')
 make_model = st.sidebar.selectbox('Make and Model', ['Select','Audi A1', 'Audi A3', 'Opel Astra', 'Opel Corsa', 'Opel Insignia','Renault Clio', 'Renault Espace', "Other"])
 st.sidebar.write('')
-age = st.sidebar.slider('Car Age', 0, 20, 1)
+Type = st.sidebar.selectbox('Type Status', ['Select',"Used", "Employee's car", "Demonstration", "Pre-registered", "New", "Other"])
 st.sidebar.write('')
+age = st.sidebar.slider('Car Age', 0, 20, 10, 1)
+st.sidebar.write('')
+km = st.sidebar.slider('Km', min_value=0, max_value=320000, value=160000, step=1000)
+st.sidebar.write('')
+hp_kW=st.sidebar.slider("Engine Size", min_value=40, max_value=200, value=100, step=5)
 Gearing_Type = st.sidebar.radio('Gearing Type', ('Automatic', 'Manual', 'Semi-automatic'))
 st.sidebar.write('')
-Gears = st.sidebar.radio('Gears', [5,6,7,8])
 st.sidebar.write('')
-hp_kW=st.sidebar.slider("Engine Size", min_value=40, max_value=200, value=75, step=5)
+Gears = st.sidebar.radio('Gears', [5,6,7,8])
+
 
 # Create a dataframe using feature inputs
-data = {'make_model': make_model,
-            'age': age,
-            'Gearing_Type': Gearing_Type,
-            'Gears': Gears,
-           'hp_kW': hp_kW}
+if model == 'Lasso':
+    data = {'make_model': make_model,
+                'age': age,
+                'hp_kW': hp_kW,
+                'km': km,
+            'Type': Type,
+            'Gearing_Type': Gearing_Type}
+elif model == 'Random Forest':
+    data = {'make_model': make_model,
+                'age': age,
+                'Gearing_Type': Gearing_Type,
+                'Gears': Gears,
+            'hp_kW': hp_kW}
 
 
-filename = "final_model"
-model=pickle.load(open(filename, "rb"))
+
+model_rf=pickle.load(open('rf_model', "rb"))
+model_lasso=pickle.load(open('lasso_model', "rb"))
 
 # CAR TABLE
-text(text='Car Features', size=40, weight='bold')
+html_options(text='Car Features', size=40, weight='bold', color='#FFA500', align='center')
 st.write('')
-df = pd.DataFrame.from_dict([data])
-st.table(df.rename(columns={'make_model':'Make Model', 'age':'Age', 'Gearing_Type':'Gearing Type', 'hp_kW':'Engine Size'}))
-
+try:
+    df = pd.DataFrame.from_dict([data])
+    st.table(df.rename(columns={'make_model':'Make Model', 'age':'Age', 'Gearing_Type':'Gearing Type', 'hp_kW':'Engine Size', 'km':'Km'}))
+except:
+    pass
 
 
 # PREDICTION
+
 predict = st.button("Predict")
-result = str(model.predict(df)[0])
+if model == 'Lasso':
+    result = str(model_lasso.predict(df)[0])
+elif model == 'Random Forest':
+    result = str(model_rf.predict(df)[0])
+
+
+
+def car_info(image_url, title_num=1):
+    base_url = 'https://en.wikipedia.org/wiki/{}'
+    st.write()
+    st.image(image_url)
+    st.write()
+    r = requests.get(base_url.format(make_model))
+    soup = BeautifulSoup(r.content, 'html')
+    first = soup.find('div', {'class':'mw-parser-output'})
+    titles = first.find_all('p')
+
+    wiki_text = ''
+    for num in range(1, title_num+1):
+        wiki_text += titles[num].text.replace('[1]', '').replace('[2]', '').replace('[3]', '').replace('[4]', '').replace('[5]', '').strip()+' '
+    html_options(align='center',size=25,text=wiki_text, color='#FFF5EE')
+    html_options(on='link', align='center',to_link=base_url.format(make_model), image_height=150, image_width=300, image_source="https://media.istockphoto.com/id/1287057320/vector/more-info-button-rounded-sign-on-white-background.jpg?s=612x612&w=0&k=20&c=iS2ANd4VHjWopfcT1xgdDlpc7p1AHnnyDzVCu-Tm10w=", image_bg_color='#FFFFFF')
+
+
 if predict:
-    if make_model == 'Select':
-        st.warning('Please select make-model!')
+    if make_model == 'Select' or model == 'Select' or Type=='Select':
+        st.warning("Please make sure you choose 'Scikit-Learn Model', 'Make and Model' and 'Type Status'!")
+    elif model == 'XGBoost':
+        st.info('The model you selected is currently not available.')
     else:
         st.balloons()
         st.success(result[:8]+' $')
         # MORE INFORMATION
-        text(text='Information About Car',align='center', size=40, weight='bold')
+        html_options(text='Information About Car',align='center', size=40, weight='bold')
+        
         if make_model == 'Audi A1':
-            st.write()
-            st.image("audia1.jpeg")
-            st.write()
-            text(align='center',size=25,text='The Audi A1 (internally designated Typ 8X) is a supermini car launched by Audi at the 2010 Geneva Motor Show. Sales of the initial three-door A1 model started in Germany in August 2010, with the United Kingdom following in November 2010. A five-door version, called Sportback, was launched in November 2011, with sales starting in export markets during spring 2012.', color='#FFF5EE')
-            st.info('Click on the emoji below for more information about car.')
-            st.markdown('<span style="font-size: 80px; text-align: center;">[:car:](https://en.wikipedia.org/wiki/Audi_A1)</span>', unsafe_allow_html=True)
+            car_info('https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Audi_metroproject_quattro_concept.JPG/1024px-Audi_metroproject_quattro_concept.JPG')
         elif make_model == 'Audi A3':
-            st.write()
-            st.image("audia3.jpg")
-            st.write()
-            text(align='center',size=25,text='The Audi A3 is a subcompact executive/small family car (C-segment) manufactured and marketed by the German automaker Audi AG since September 1996, currently in its fourth generation.The first two generations of the Audi A3 were based on the Volkswagen Group A platform, while the third and fourth generations use the Volkswagen Group MQB platform.', color='#FFF5EE')
-            st.info('Click on the emoji below for more information about car.')
-            st.markdown('<span style="font-size: 80px; text-align: center;">[:car:](https://en.wikipedia.org/wiki/Audi_A3)</span>', unsafe_allow_html=True)
+            car_info('https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Audi_A3_8Y_Sedan_IMG_5936.jpg/1920px-Audi_A3_8Y_Sedan_IMG_5936.jpg', title_num=2)
         elif make_model == 'Opel Corsa':
-            st.write()
-            st.image("opelcorsa.jpg")
-            st.write()
-            text(align='center',size=25,text='The Opel Corsa is a supermini car engineered and produced by the German automobile manufacturer Opel since 1982. Throughout its existence, it has been sold under a variety of other brands owned by General Motors (most notably Vauxhall, Chevrolet, and Holden) and also spawned various other derivatives.At its height of popularity, the Corsa became the best-selling car in the world in 1998, recording 910,839 sales with assembly operations in four continents and was sold under five marques with five different body styles. By 2007, over 18 million Corsas had been sold globally', color='#FFF5EE')
-            st.info('Click on the emoji below for more information about car.')
-            st.markdown('<span style="font-size: 80px; text-align: center;">[:car:](https://en.wikipedia.org/wiki/Opel_Corsa)</span>', unsafe_allow_html=True)
+            car_info('https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Opel_Corsa-e_at_IAA_2019_IMG_0738.jpg/1280px-Opel_Corsa-e_at_IAA_2019_IMG_0738.jpg', title_num=2)
         elif make_model == 'Opel Astra':
-            st.write()
-            st.image("opelastra.jpg")
-            st.write()
-            text(align='center',size=25,text='The Opel Astra is a compact car/small family car (C-segment) developed and produced by the German automaker Opel since 1991, currently at its sixth generation. It was first launched in September 1991 as a direct replacement to the Opel Kadett. As of 2022, the car slots between the smaller Corsa supermini and the larger Insignia large family car.', color='#FFF5EE')
-            st.info('Click on the emoji below for more information about car.')
-            st.markdown('<span style="font-size: 80px; text-align: center;">[:car:](https://en.wikipedia.org/wiki/Opel_Astra)</span>', unsafe_allow_html=True)
+            car_info('https://upload.wikimedia.org/wikipedia/commons/c/c0/Opel_Astra_L_1X7A6738.jpg')
         elif make_model == 'Opel Insignia':
-            st.write()
-            st.image("opelinsignia.jpg")
-            st.write()
-            text(align='center',size=25,text='The Opel Insignia is a large family car (D-segment in Europe) developed and produced by the German car manufacturer Opel since 2008. Taking its name from a 2003 concept car, the model line serves as the flagship Opel car line, slotted above the Astra and Corsa in size. The Insignia serves as the successor to both the Signum and Vectra model lines, replacing both vehicles under a single nameplate. Currently in its second generation, the model line is offered in four-door sedan/saloon body styles, five-door liftback, and as a five-door station wagon/estate.', color='#FFF5EE')
-            st.info('Click on the emoji below for more information about car.')
-            st.markdown('<span style="font-size: 80px; text-align: center;">[:car:](https://en.wikipedia.org/wiki/Opel_Insignia)</span>', unsafe_allow_html=True)
+            car_info('https://upload.wikimedia.org/wikipedia/commons/e/ed/Opel_Insignia_Sports_Tourer_1.5_DIT_Innovation_%28B%29_%E2%80%93_Frontansicht%2C_12._Mai_2017%2C_D%C3%BCsseldorf.jpg')
         elif make_model == 'Renault Clio':
-            st.write()
-            st.image("renaultclio.jpg")
-            st.write()
-            text(align='center',size=25,text="The Renault Clio is a supermini car (B-segment), produced by French automobile manufacturer Renault. It was launched in 1990, and entered its fifth generation in 2019. The Clio has had substantial critical and commercial success, being consistently one of Europe's top-selling cars since its launch, and it is largely credited with restoring Renault's reputation and stature after a difficult second half of the 1980s. The Clio is one of only two cars, the other being the Volkswagen Golf, to have been voted European Car of the Year twice, in 1991 and 2006.", color='#FFF5EE')
-            st.info('Click on the emoji below for more information about car.')
-            st.markdown('<span style="font-size: 80px; text-align: center;">[:car:](https://en.wikipedia.org/wiki/Renault_Clio)</span>', unsafe_allow_html=True)
+            car_info('https://upload.wikimedia.org/wikipedia/commons/f/f0/2019_Renault_Clio_Iconic_TCE_1.0_Front.jpg')
         elif make_model == 'Renault Espace':
-            st.write()
-            st.image("renaultespace.jpg")
-            st.write()
-            text(align='center',size=25,text="The Renault Espace is a large five-door multi-purpose vehicle/MPV (M-segment) manufactured by Renault since 1984 for five generations. The first three generations of the Espace were amongst the first contemporary minivans or MPVs, and were manufactured by Matra for Renault. The fourth generation, also an MPV, was manufactured by Renault. The Renault Grand Espace is a long wheelbase (LWB) version with increased rear leg room and boot size. The fifth generation is introduced with a crossover SUV-inspired styling while keeping the space-oriented MPV body style. Renault described the fifth generation Espace as a 'crossover-style MPV' which combines elements of saloon, SUV and MPV, while retaining interior space and practicality of the latter. The sixth generation Espace will return as an SUV.", color='#FFF5EE')
-            st.info('Click on the emoji below for more information about car.')
-            st.markdown('<span style="font-size: 80px; text-align: center;">[:car:](https://en.wikipedia.org/wiki/Renault_Espace)</span>', unsafe_allow_html=True)
+            car_info('https://upload.wikimedia.org/wikipedia/commons/2/2c/2015-present_Renault_Espace_Front.jpg')
+st.write('')
+st.write('')
+st.write('')
+st.write('')
+st.write('')
+html_options(text='More information about me:', size=30, color='#E6FFFB', bg_color='#3ABCA7', weight='bold', style='italic')
+st.write('')
+st.write('')
 
-st.write('')
-st.write('')
-st.write('')
-st.info('For more information about me:')
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.markdown("""<a href="https://www.linkedin.com/in/halilibrahimunsal/"><img width="50" height="50" src="https://unpkg.com/simple-icons@v8/icons/linkedin.svg" /></a>""", unsafe_allow_html=True)
+    html_options(on='link', to_link='https://www.linkedin.com/in/halilibrahimunsal/', image_height=60, image_width=60, image_source="https://unpkg.com/simple-icons@v8/icons/linkedin.svg", image_bg_color='#FFFFFF')
 with col2:
-    st.markdown("""<a href="https://github.com/halilunsall"><img width="50" height="50" src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg" /></a>""", unsafe_allow_html=True)
+    html_options(on='link', to_link='https://github.com/halilunsall', image_height=60, image_width=60, image_source="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg", image_bg_color='#FFFFFF')
 with col3:
-    st.markdown("""<a href="https://public.tableau.com/app/profile/halilunsal"><img width="50" height="50" src="https://cdn.worldvectorlogo.com/logos/tableau-software.svg" /></a>""", unsafe_allow_html=True)
+    html_options(on='link', to_link='https://public.tableau.com/app/profile/halilunsal', image_height=60, image_width=60, image_source="https://cdn.worldvectorlogo.com/logos/tableau-software.svg", image_bg_color='#FFFFFF')
 
